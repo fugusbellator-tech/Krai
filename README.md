@@ -18,17 +18,29 @@ I wanted a compact, understandable object that mixes data, topology and a notion
 
 Constructors:
 All constructors initialize a Krai node with specific data and connections.
+
 Krai()
+
 Default empty node. All fields zeroed or null, link array empty.
+
 Krai(int d, Krai[] links, Krai p)
+
 Integer node. Stores d in dataInt, copies links, sets parent as p.
+
 Krai(double d, Krai[] links, Krai p)
+
 Same as above, but stores a double.
+
 Krai(boolean b, Krai[] links, Krai p)
+
 Boolean variant.
+
 Krai(String s, Krai[] links, Krai p)
+
 String variant.
+
 Krai(char c, Krai[] links, Krai p)
+
 Character variant.
 
 Protocol operations :
