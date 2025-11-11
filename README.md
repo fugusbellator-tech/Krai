@@ -49,7 +49,7 @@ protocol_equals(Krai protocol)
 Returns the given protocol if both nodes have equal dataInt values, else returns null.
 (Intended as a minimal check for structural equality.)
 
-protocol_ROLARI(int a, Krai protocol)
+protocol_ROLARI(int a, Krai protocol) //Replace-Or-Link-And-Reintegrate
 Mutates the protocol’s link array by swapping a child link with this.
 It’s an experimental method for “re-ordering” or “relinking” a structure based on an index a.
 Returns the modified protocol.
