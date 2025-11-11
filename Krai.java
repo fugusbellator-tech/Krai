@@ -121,9 +121,12 @@ public class Krai {
     }
 
     Krai protocol_ROLARI(int a, Krai protocol) {
+        if(protocol==null){
+            return null;
+        }
         if (a >= protocol.link.length || a < 0) {
             System.out.println("Invalid index given ");
-            return protocol;
+            return protocol;    
         } else {
             Krai temp = new Krai();
             temp.dataInt=protocol.link[a].dataInt;
@@ -153,7 +156,7 @@ public class Krai {
             return protocol;
         }
         if (protocol == null) {
-            return protocol;
+            return null;
         } else {
             int j = Integer.MAX_VALUE;
             int p = -1;
