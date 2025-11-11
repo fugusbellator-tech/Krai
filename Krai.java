@@ -129,12 +129,16 @@ public class Krai {
             protocol.link[a] = this;
             protocol.link[a].protocol = temp.protocol;
             this.dataInt = temp.dataInt;
+            this.dataDouble = temp.dataDouble;
+            this.dataBool = temp.dataBool;
+            this.dataChar = temp.dataChar;
+            this.dataString = temp.dataString;
             this.link = Arrays.copyOf(temp.link, temp.link.length);
             return protocol;
         }
     }
 
-    Krai protocol_diffsim(Krai protocol, int a) {
+  /*  Krai protocol_diffsim(Krai protocol, int a) {
         if (a >= this.link.length || a < 0) {
             return protocol;
         }
@@ -152,7 +156,7 @@ public class Krai {
             protocol = protocol.protocol_ROLARI(p, protocol);
             return protocol;
         }
-    }
+    }*/
 
     public static void main(String[] args) {
         Krai demo = new Krai();
