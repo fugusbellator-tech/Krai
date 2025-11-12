@@ -8,6 +8,7 @@ public class Krai {
     char dataChar;
     Krai protocol;
     Krai[] link;
+    Krai dataTag;
 
     Krai() {
         dataInt = 0;
@@ -17,6 +18,7 @@ public class Krai {
         dataChar = '\0';
         protocol = null;
         link = new Krai[0];
+        dataTag = null;
     }
 
     Krai(int d, Krai[] links, Krai p) {
@@ -27,6 +29,7 @@ public class Krai {
         dataBool=false;
         dataChar='\0';
         dataString="";
+        dataTag = null;
     }
 
     Krai(double d, Krai[] links, Krai p) {
@@ -37,6 +40,7 @@ public class Krai {
         dataBool=false;
         dataChar='\0';
         dataString="";
+        dataTag = null;
     }
 
     Krai(boolean b, Krai[] links, Krai p) {
@@ -47,6 +51,7 @@ public class Krai {
         dataChar='\0';
         dataDouble=0.0;
         dataString="";
+        dataTag = null;
     }
 
     Krai(String s, Krai[] links, Krai p) {
@@ -57,6 +62,7 @@ public class Krai {
         dataChar='\0';
         dataInt=0;
         dataDouble=0.0;
+        dataTag = null;
     }
 
     Krai(char c, Krai[] links, Krai p) {
@@ -67,6 +73,7 @@ public class Krai {
         dataDouble=0.0;
         dataBool=false;
         dataString="";
+        dataTag = null;
     }
 
     Krai[] getLinks() {
@@ -95,6 +102,10 @@ public class Krai {
 
     char getDataChar() {
         return dataChar;
+    }
+
+    Krai getDataTag() {
+        return dataTag;
     }
 
     void linked_list() {
@@ -371,9 +382,92 @@ public class Krai {
                 out += ";";
             }
         }
-        this.dataString = out;
-        return this;
+        int[] charA = new int[len];
+        int[] strLen = new int[len];
+        for (int i = 0; i < len; i++) { charA[i] = nodes[i].dataChar; strLen[i] = (nodes[i].dataString == null ? 0 : nodes[i].dataString.length()); }
+        double[][] feat = new double[len][6];
+        for (int i = 0; i < len; i++) {
+            feat[i][0] = 1.0;
+            feat[i][1] = ia[i];
+            feat[i][2] = da[i];
+            feat[i][3] = ba[i];
+            feat[i][4] = charA[i];
+            feat[i][5] = strLen[i];
+        }
+        String[] names2 = new String[]{"_1","I","D","B","C","S"};
+        StringBuilder adv2 = new StringBuilder();
+        adv2.append("{\"multivariate\":[");
+        boolean firstAdv = true;
+        int[] targets2 = new int[]{1,2,3,4,5};
+        for (int tix = 0; tix < targets2.length; tix++) {
+            int target = targets2[tix];
+            java.util.ArrayList<double[]> rows = new java.util.ArrayList<>();
+            java.util.ArrayList<Double> ys = new java.util.ArrayList<>();
+            java.util.ArrayList<Double> weights = new java.util.ArrayList<>();
+            java.util.ArrayList<String> colNames = new java.util.ArrayList<>();
+            for (int i = 0; i < len; i++) {
+                java.util.ArrayList<Double> r = new java.util.ArrayList<>();
+                r.add(1.0);
+                double[] fi = differentiableI(feat[i][1]); for (int ii=0; ii<fi.length; ii++) r.add(fi[ii]);
+                double[] fd = differentiableD(feat[i][2]); for (int ii=0; ii<fd.length; ii++) r.add(fd[ii]);
+                double[] fb = differentiableB((int)feat[i][3]); for (int ii=0; ii<fb.length; ii++) r.add(fb[ii]);
+                double[] fc = differentiableC((int)feat[i][4]); for (int ii=0; ii<fc.length; ii++) r.add(fc[ii]);
+                double[] fs = differentiableS((int)feat[i][5]); for (int ii=0; ii<fs.length; ii++) r.add(fs[ii]);
+                double[] row = new double[r.size()]; for (int j=0;j<r.size();j++) row[j]=r.get(j);
+                rows.add(row);
+                ys.add(feat[i][target]);
+                weights.add(1.0 + 0.5*eprop(nodes[i]));
+            }
+            int pcols = rows.get(0).length;
+            for (int j=0;j<pcols;j++) colNames.add("f"+j);
+            double[][] X = new double[len][pcols]; double[] y = new double[len]; double[] w = new double[len];
+            for (int i=0;i<len;i++) { double[] r = rows.get(i); for (int j=0;j<pcols;j++) X[i][j]=r[j]; y[i]=ys.get(i); w[i]=weights.get(i); }
+            double meanY = 0; for (int i=0;i<len;i++) meanY += y[i]; meanY /= len; double energyY=0; for (int i=0;i<len;i++) energyY += (y[i]-meanY)*(y[i]-meanY);
+            int nh = Math.max(3, Math.min(10, pcols/2+1));
+            double[][] V = new double[nh][pcols]; double[] W = new double[nh+1];
+            java.util.Random rnd = new java.util.Random(1);
+            for (int i=0;i<nh;i++) for (int j=0;j<pcols;j++) V[i][j] = (rnd.nextDouble()-0.5)*0.1;
+            for (int i=0;i<W.length;i++) W[i] = (rnd.nextDouble()-0.5)*0.1;
+            double lr = 0.01; double l2 = 1e-4; double bestRel = Double.MAX_VALUE; int epochs=400;
+            for (int ep=0; ep<epochs; ep++) {
+                double loss=0; double[][] gV = new double[nh][pcols]; double[] gW = new double[nh+1];
+                for (int i=0;i<len;i++) {
+                    double[] xi = X[i]; double[] h = new double[nh]; for (int j=0;j<nh;j++) { double s=0; for (int k=0;k<pcols;k++) s += V[j][k]*xi[k]; h[j] = Math.tanh(s); }
+                    double pred = W[0]; for (int j=0;j<nh;j++) pred += W[j+1]*h[j]; double err = pred - y[i]; double wt = w[i]; loss += wt*err*err;
+                    double dOut = 2*wt*err;
+                    gW[0] += dOut;
+                    for (int j=0;j<nh;j++) gW[j+1] += dOut * h[j];
+                    for (int j=0;j<nh;j++) {
+                        double dh = (1 - h[j]*h[j]) * (dOut * W[j+1]);
+                        for (int k=0;k<pcols;k++) gV[j][k] += dh * xi[k];
+                    }
+                }
+                for (int j=0;j<nh;j++) for (int k=0;k<pcols;k++) { gV[j][k] = gV[j][k]/len + l2*V[j][k]; V[j][k] -= lr * gV[j][k]; }
+                for (int j=0;j<W.length;j++) { gW[j] = gW[j]/len + l2*W[j]; W[j] -= lr * gW[j]; }
+                if (ep % 50 == 0) {
+                    double rss=0; for (int i=0;i<len;i++) { double[] xi=X[i]; double[] h=new double[nh]; for (int j=0;j<nh;j++) { double s=0; for (int k=0;k<pcols;k++) s+=V[j][k]*xi[k]; h[j]=Math.tanh(s);} double pred=W[0]; for (int j=0;j<nh;j++) pred+=W[j+1]*h[j]; double r=pred-y[i]; rss+=r*r; }
+                    double rms = Math.sqrt(rss/len); double base = Math.sqrt(energyY/len); double rel = base==0? rms : rms/base; if (rel < bestRel) bestRel = rel;
+                }
+            }
+            double rss=0; for (int i=0;i<len;i++) { double[] xi=X[i]; double[] h=new double[nh]; for (int j=0;j<nh;j++) { double s=0; for (int k=0;k<pcols;k++) s+=V[j][k]*xi[k]; h[j]=Math.tanh(s);} double pred=W[0]; for (int j=0;j<nh;j++) pred+=W[j+1]*h[j]; double r=pred-y[i]; rss+=r*r; }
+            double rms = Math.sqrt(rss/len); double base = Math.sqrt(energyY/len); double rel = base==0? rms : rms/base;
+            if (rel <= tol) {
+                if (!firstAdv) adv2.append(","); firstAdv = false;
+                adv2.append("{"); adv2.append("\"target\":\"").append(names2[target]).append("\""); adv2.append(",\"method\":\"MLP\""); adv2.append(",\"rel\":").append(Double.toString(rel)); adv2.append(",\"preds\":[");
+                for (int j=0;j<pcols;j++) { if (j>0) adv2.append(","); adv2.append("\"").append(colNames.get(j)).append("\""); }
+                adv2.append("]}");
+            }
+        }
+        adv2.append("]}");
+        Krai tag = new Krai(); tag.dataString = adv2.toString(); this.dataTag = tag; this.dataString = out; return this;
     }
+
+    private double[] differentiableI(double v) { return new double[]{v, v*v}; }
+    private double[] differentiableD(double v) { return new double[]{v, v*v}; }
+    private double[] differentiableB(int b) { return new double[]{b, 1-b}; }
+    private double[] differentiableC(int c) { return new double[]{c, Math.sin(c), Math.cos(c)}; }
+    private double[] differentiableS(int len) { return new double[]{len, Math.log(len+1)}; }
+    private double eprop(Krai node) { if (node == null) return 0.0; return 1.0 + 0.5 * eprop(node.protocol); }
 
     public Krai protocol_synthesizer(int n) {
         this.AL(n);
