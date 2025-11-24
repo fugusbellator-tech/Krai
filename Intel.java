@@ -23,6 +23,12 @@ class Intel{
     }
   }
     double dissimilarity(Krai a,Krai b){
-      //#ToDo completion. rn not worth it
+      // Minimal dissimilarity metric using integer payloads and string length differences
+      if(a==null || b==null) return Double.MAX_VALUE;
+      double diff = Math.abs(a.dataInt - b.dataInt);
+      if(a.dataString != null && b.dataString != null){
+        diff += Math.abs(a.dataString.length() - b.dataString.length());
+      }
+      return diff;
     }
   }

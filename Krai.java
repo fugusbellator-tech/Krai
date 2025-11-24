@@ -167,6 +167,18 @@ public class Krai {
         }
     }
 
+    void appendStepInfo(int t, int out, int sum, int err, int cnt, char flag) {
+        if (this.dataString == null) this.dataString = "";
+        StringBuilder sb = new StringBuilder();
+        sb.append("t=").append(t).append(";");
+        sb.append("out=").append(out).append(";");
+        sb.append("sum=").append(sum).append(";");
+        sb.append("err=").append(err).append(";");
+        sb.append("cnt=").append(cnt).append(";");
+        sb.append("flag=").append(flag).append(";");
+        this.dataString = this.dataString + sb.toString();
+    }
+
        
     
 }
